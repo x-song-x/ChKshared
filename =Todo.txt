@@ -1,0 +1,6 @@
+(1) Panelett.m
+	Put "inputEnable" for every type
+
+	The current version should work for FANTASIA, XINTRINSIC, Photometry, Photometry2, but not Xrecorder
+
+(2) 
