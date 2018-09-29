@@ -1,6 +1,7 @@
 (1) Panelett.m
 	Put "inputEnable" for every type
-
+		ToggleSwitch
 	The current version should work for FANTASIA, XINTRINSIC, Photometry, Photometry2, but not Xrecorder
 
-(2) 
+(2) To add:
+	SetupThorlabsPowerMeters.m

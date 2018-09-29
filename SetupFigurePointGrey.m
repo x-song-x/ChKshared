@@ -1,12 +1,17 @@
-function msg = SetupFigurePointGrey(N)
+function msg = SetupFigurePointGrey
 % The GUI code for Xintrinsic Setup
 
 global TP
 global Xin
+
+%% Coloring Scheme
 try         
     Xin.UI.C = TP.UI.C;
 catch
 end
+
+%% Locate Camera Number 
+    N = get(gcbo,   'UserData');
 
 %% UI Figure                                        
     % Figure scale
@@ -239,7 +244,7 @@ S.PnltCurrent.row = 4;      S.PnltCurrent.column = 1;
         WP.inputSlideStep=  1/diff(WP.inputRange)*[1 1];
         Panelette(S, WP, 'Xin');
         Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenSlider =	Xin.UI.FigPGC(N).Panelette{WP.row,WP.column}.hSlider{1};
-        Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenEdit =   Xin.UI.FigPGC(N).Panelette{WP.row,WP.column}.hEdit{1};
+        Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenEdit =    Xin.UI.FigPGC(N).Panelette{WP.row,WP.column}.hEdit{1};
         set(Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenSlider,	'UserData',     N);
         set(Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenEdit, 	'UserData',     N);
         clear WP;
@@ -359,3 +364,9 @@ S.PnltCurrent.row = 1;      S.PnltCurrent.column = 1;
 msg = [datestr(now, 'yy/mm/dd HH:MM:SS.FFF') '\tSetupFigurePointGrey\tSetup the GUI for PointGrey Camera #:',...
     num2str(N) ,'\r\n'];
 updateMsg(Xin.D.Exp.hLog, msg);
+
+%% Initializing
+CtrlPointGreyCams('InitializeCallbacks',    N);
+CtrlPointGreyCams('Cam_DispGain',           N,  1);    % for displaying gain number right  
+CtrlPointGreyCams('Preview_Switch',         N,  'ON');   
+    

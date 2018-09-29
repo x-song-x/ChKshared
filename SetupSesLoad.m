@@ -30,6 +30,9 @@ if LS>=4
     % Load the Sound File & Update Parameters
 	filestr =                   [L.Ses.SoundDir, L.Ses.SoundFile];
     SoundRaw =                  audioread(filestr, 'native');
+    if length(SoundRaw) == 1    % Virtual Sounds for Initializing Scan Scheme
+        SoundRaw =              int16(zeros(0,0));
+    end
     SoundInfo =                 audioinfo(filestr);       
                                         L.Ses.SoundTitle =      SoundInfo.Title;
                                         L.Ses.SoundArtist =     SoundInfo.Artist;
@@ -63,9 +66,14 @@ if LS>=4
                                         L.Trl.DurPostStim =     L.Trl.DurTotal - ...
                                                                 L.Trl.DurPreStim - ...
                                                                 L.Trl.DurStim;
+    if isempty(L.Ses.SoundWave)
+                                        L.Ses.SoundMat =        L.Ses.SoundWave;
+    else
                                         L.Ses.SoundMat =        reshape(L.Ses.SoundWave,...
                                                                     length(L.Ses.SoundWave)/L.Trl.SoundNumTotal,...
                                                                     L.Trl.SoundNumTotal);
+    end
+        
 	if round(   length(SoundRaw)/L.Ses.SoundSR ) ~=...
                 length(SoundRaw)/L.Ses.SoundSR
         warndlg('The sound length is NOT in integer seconds');
@@ -78,18 +86,22 @@ end
 
 %% Load AddAtts
 if LS>=3
-    L.Ses.AddAttNumTotal =      length(L.Ses.AddAtts);
-    L.Ses.CycleDurTotal =       L.Ses.SoundDurTotal * L.Ses.AddAttNumTotal;        
-    L.Ses.CycleDurCurrent =     NaN;
-    L.Trl.NumTotal =            L.Trl.SoundNumTotal * L.Ses.AddAttNumTotal;
-    L.Trl.NumCurrent =          NaN;            
-    L.Trl.AttNumCurrent =       NaN;
-    L.Trl.AttDesignCurrent =    NaN;
-    L.Trl.AttAddCurrent =       NaN;
-    L.Trl.AttCurrent =          NaN;
-    L.Ses.TrlIndexSoundNum =    repmat(1:L.Trl.SoundNumTotal, 1, L.Ses.AddAttNumTotal);
+        L.Ses.AddAttNumTotal =      length(L.Ses.AddAtts);
+        L.Ses.CycleDurTotal =       L.Ses.SoundDurTotal * L.Ses.AddAttNumTotal;        
+        L.Ses.CycleDurCurrent =     NaN;
+        L.Trl.NumTotal =            L.Trl.SoundNumTotal * L.Ses.AddAttNumTotal;
+        L.Trl.NumCurrent =          NaN;            
+        L.Trl.AttNumCurrent =       NaN;
+        L.Trl.AttDesignCurrent =    NaN;
+        L.Trl.AttAddCurrent =       NaN;
+        L.Trl.AttCurrent =          NaN;
+        L.Ses.TrlIndexSoundNum =    repmat(1:L.Trl.SoundNumTotal, 1, L.Ses.AddAttNumTotal);
+    if isnan(L.Trl.SoundNumTotal)
+        L.Ses.TrlIndexAddAttNum = NaN;
+    else
     L.Ses.TrlIndexAddAttNum =   repelem(1:L.Ses.AddAttNumTotal, L.Trl.SoundNumTotal);
-
+    end
+    set(findobj('tag', 'hSes_AddAtts_Edit'),        'String',   L.Ses.AddAttString);
     set(findobj('tag', 'hSes_AddAttNumTotal_Edit'),	'String',   num2str(L.Ses.AddAttNumTotal));
     set(findobj('tag', 'hSes_CycleDurTotal_Edit'), 	'String',	sprintf('%5.1f (s)', L.Ses.CycleDurTotal));
     set(findobj('tag', 'hSes_CycleDurCurrent_Edit'),'String',   sprintf('%5.1f (s)', L.Ses.CycleDurCurrent));
@@ -117,18 +129,33 @@ end
 if LS>=1
     switch L.Ses.TrlOrder
         case 'Sequential'
-            L.Ses.TrlOrderMat =     repmat(1:L.Trl.NumTotal, L.Ses.CycleNumTotal, 1);
+            try
+                        L.Ses.TrlOrderMat =	repmat(1:L.Trl.NumTotal, L.Ses.CycleNumTotal, 1);
+            catch
+                        L.Ses.TrlOrderMat =	NaN;
+            end
         case 'Randomized'
-            L.Ses.TrlOrderMat =     [];
-            for i = 1:L.Ses.CycleNumTotal
-                L.Ses.TrlOrderMat = [L.Ses.TrlOrderMat; randperm(L.Trl.NumTotal)];
-            end            
+            try
+                L.Ses.TrlOrderMat =     [];
+                if ~isinf(L.Ses.CycleNumTotal)
+                    for i = 1:L.Ses.CycleNumTotal
+                        L.Ses.TrlOrderMat = [L.Ses.TrlOrderMat; randperm(L.Trl.NumTotal)];
+                    end    
+                else
+                        L.Ses.TrlOrderMat = NaN;
+                end
+            catch
+                        L.Ses.TrlOrderMat =	NaN;
+            end                
         otherwise
             errordlg('wrong trial order option');
     end
-    L.Ses.TrlOrderVec =             reshape(L.Ses.TrlOrderMat',1,[]); % AddAtt Order
-    L.Ses.TrlOrderSoundVec =        L.Ses.TrlIndexSoundNum(L.Ses.TrlOrderVec);
-        
+        L.Ses.TrlOrderVec =         reshape(L.Ses.TrlOrderMat',1,[]); % AddAtt Order
+    try
+        L.Ses.TrlOrderSoundVec =	L.Ses.TrlIndexSoundNum(L.Ses.TrlOrderVec);
+    catch
+        L.Ses.TrlOrderSoundVec =    NaN;
+    end        
     L.Trl.StimNumCurrent =      NaN;
     L.Trl.StimNumNext =         NaN;
     L.Trl.SoundNumCurrent =    	NaN;
@@ -146,20 +173,18 @@ str = [MainVarStr, '.D.Trl.Load = L.Trl;']; eval(str);
 %% XINTRINSIC or FANTASIA Specific Updates, after write back Load
 switch MainVarStr
     case 'Xin'
+        % PointGrey Camera related
         Xin.D.Ses.UpdateNumTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.NIDAQ.Task_AI_Xin.time.updateRate;
         Xin.D.Ses.UpdateNumCurrent =    NaN;      
         Xin.D.Ses.UpdateNumCurrentAI =  NaN;    
         Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(2).FrameRate; 
         Xin.D.Ses.FrameRequested =	NaN;    
         Xin.D.Ses.FrameAcquired =   NaN;    
-        Xin.D.Ses.FrameAvailable =  NaN;                     
-        Xin.D.Sys.NIDAQ.Task_AO_Xin.time.sampsPerChanToAcquire = ...
-                                    length( Xin.D.Ses.Load.SoundWave)*...
-                                    Xin.D.Ses.Load.AddAttNumTotal*...
-                                    Xin.D.Ses.Load.CycleNumTotal;
+        Xin.D.Ses.FrameAvailable =  NaN;   
         set(Xin.UI.H.hSes_FrameTotal_Edit,      'String', 	num2str(Xin.D.Ses.FrameTotal));
         set(Xin.UI.H.hSes_FrameAcquired_Edit,   'String',   num2str(Xin.D.Ses.FrameAcquired) );
         set(Xin.UI.H.hSes_FrameAvailable_Edit,  'String',   num2str(Xin.D.Ses.FrameAvailable) ); 
     case 'TP'
+        
     otherwise
 end

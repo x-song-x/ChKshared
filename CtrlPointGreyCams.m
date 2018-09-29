@@ -337,7 +337,7 @@ function Trigger_Mode(varargin)
             end
         end
     catch
-        disp('Trigger mode GUI update does not apply');
+        disp('GUI update on trigger mode does not apply');
     end
     %% Set the VideoInput object
     triggerconfig(Xin.HW.PointGrey.Cam(N).hVid, ...
