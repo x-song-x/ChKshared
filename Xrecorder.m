@@ -23,6 +23,7 @@ global rec
 
 %% Parameter Setup
 rec.FileNameHead =          'rec';
+rec.FileDir =               'C:\EXPERIMENTS\Ambience\';
 rec.RecTime =               1;
 
 rec.MicSys =                '4189+2250';
@@ -70,22 +71,11 @@ rec.NIDAQ_UR =              10;
 rec.NIDAQ_Options(1).Dev.devName =      'Dev3';
 rec.NIDAQ_Options(1).CO.chanIDs = 		0;
 rec.NIDAQ_Options(1).AI.chanIDs =		2;
-rec.NIDAQ_Options(1).AO.chanIDs =       2;
+% rec.NIDAQ_Options(1).AI.chanIDs =		16;
 
 rec.NIDAQ_Options(2).Dev.devName =      'Dev4';
 rec.NIDAQ_Options(2).CO.chanIDs = 		0;
 rec.NIDAQ_Options(2).AI.chanIDs =		0;
-rec.NIDAQ_Options(2).AO.chanIDs =       0;
-
-rec.sys.Marmoset.AudiogramFreq = 1000*[...
-        0.1250	0.2500	0.5000	1.0000	2.0000	4.0000	6.0000	7.0000	8.0000	10.0000	12.0000 16.0000 32.0000 36.0000 ];
-rec.sys.Marmoset.AudiogramLevel = [...
-        51.2000 36.4250 26.5250 18.1250 21.2750 18.9500 10.7750 6.8875  10.5500 14.1000 17.5250 20.1500 27.8500 39.0500 ];
-
-rec.sys.Marmoset.ERB_Freq = [...
-        250     500     1000    7000    16000];
-rec.sys.Marmoset.ERBraw = [...
-        90.97   126.85  180.51  460.83  2282.71];
 
 %% GUI Setup
 
@@ -265,20 +255,20 @@ S.PnltCurrent.row = 1;      S.PnltCurrent.column =    1;
         set(rec.UI.H.hStartStop_Rocker,     'tag',  'hStartStop_Rocker');
         clear WP; 
     
-    WP.name = 'Save / Plot';
+    WP.name = 'Plot / Save';
         WP.handleseed =     'rec.UI.H0.Panelette';
         WP.type =	'MomentarySwitch';
         WP.row =        S.PnltCurrent.row;
         WP.column =     S.PnltCurrent.column;
             S.PnltCurrent.column = S.PnltCurrent.column + 1;
-        WP.text = { 'Save','Plot'}; 	
+        WP.text = { 'Plot','Save'}; 	
         WP.tip = {  '',''};
         WP.inputEnable = {'on','on'};
-        Panelette(S, WP, 'rec'); 
-        rec.UI.H.hSave_Momentary = rec.UI.H0.Panelette{WP.row,WP.column}.hMomentary{1}; 
-        rec.UI.H.hPlot_Momentary = rec.UI.H0.Panelette{WP.row,WP.column}.hMomentary{2};
-        set(rec.UI.H.hSave_Momentary,       'tag',  'hSave_Momentary');
+        Panelette(S, WP, 'rec');  
+        rec.UI.H.hPlot_Momentary = rec.UI.H0.Panelette{WP.row,WP.column}.hMomentary{1};
+        rec.UI.H.hSave_Momentary = rec.UI.H0.Panelette{WP.row,WP.column}.hMomentary{2};
         set(rec.UI.H.hPlot_Momentary,       'tag',  'hPlot_Momentary');
+        set(rec.UI.H.hSave_Momentary,       'tag',  'hSave_Momentary');
         clear WP;
         
     WP.name = 'Load';
@@ -493,8 +483,7 @@ function RecordStart
     global rec
 
     rec.recordtime = 0; 
-    rec.waveform = [];
-    
+    rec.waveform = [];    
     
     rec.NIDAQ_D.Dev.devName =	rec.NIDAQ_Options(rec.NIDAQ_OptionNum).Dev.devName;
     T =                         [];
@@ -519,17 +508,18 @@ function RecordStart
     T.chan(1).units =               'DAQmx_Val_Volts';
     T.chan(1).terminalConfig =      'DAQmx_Val_Diff';
     T.time.rate =                   rec.NIDAQ_SR; 
-    T.time.sampleMode =             'DAQmx_Val_FiniteSamps';
-    T.time.sampsPerChanToAcquiere = round(rec.NIDAQ_SR/rec.NIDAQ_UR);   % need to check
+    T.time.sampleMode =             'DAQmx_Val_ContSamps';
+    T.time.sampsPerChanToAcquire =  rec.RecTime*rec.NIDAQ_SR;
     T.trigger.triggerSource =       ['Ctr',num2str(rec.NIDAQ_Options(rec.NIDAQ_OptionNum).CO.chanIDs),'InternalOutput'];
     T.trigger.triggerEdge =         'DAQmx_Val_Rising';
+    
     T.everyN.callbackFunc =         @RecordCallback;
     T.everyN.everyNSamples =        round(rec.NIDAQ_SR/rec.NIDAQ_UR);
     T.everyN.readDataEnable =       true;
     T.everyN.readDataTypeOption =   'Scaled';   % versus 'Native'
-    T.read.outputData =             [];
-    rec.NIDAQ_D.AI =    T;
     
+    T.read.outputData =             [];
+    rec.NIDAQ_D.AI =    T;    
     
     rec.NIDAQ_H =	CtrlNIDAQ('Creating',                   rec.NIDAQ_D);
                     CtrlNIDAQ('Commiting',  rec.NIDAQ_H,    rec.NIDAQ_D);
@@ -540,62 +530,26 @@ function RecordStart
         rec.NIDAQ_D.AI.everyN.readDataEnable,   rec.NIDAQ_D.AI.everyN.readDataTypeOption);
 
                     CtrlNIDAQ('Starting',	rec.NIDAQ_H,    rec.NIDAQ_D);
-    
-%     %% Initialize NI-DAQ card
-%     rec.H.hTask = Task(rec.sys.NIDAQ.AI_TaskName);
-%     rec.H.hTask.createAIVoltageChan(...
-%         rec.sys.NIDAQ.AI_ChanDevName,   rec.sys.NIDAQ.AI_ChanNum,...
-%         rec.sys.NIDAQ.AI_ChanName, ...
-%         -rec.sys.NIDAQ.AI_ChanVoltage,  rec.sys.NIDAQ.AI_ChanVoltage,...
-%         'DAQmx_Val_Volts');
-%     rec.H.hTask.cfgSampClkTiming(...
-%         rec.sys.NIDAQ.AI_TimeSR,...
-%         'DAQmx_Val_ContSamps',          rec.RecTime*rec.sys.NIDAQ.AI_TimeSR);
-%     rec.H.hTask.registerEveryNSamplesEvent(...
-%         @RecordCallback,...
-%         round(rec.sys.NIDAQ.AI_TimeSR/rec.sys.NIDAQ.AI_TimeUR),...
-%         true, 'native');
-%     rec.H.hTask.start();
-     
-%     T =                         [];
-%     T.taskName =                'AO SoundPlay Task';
-%     T.chan(1).deviceNames =     rec.NIDAQ_D.Dev.devName;
-%     T.chan(1).chanIDs =         rec.NIDAQ_Options(rec.NIDAQ_OptionNum).AO.chanIDs;
-%     T.chan(1).chanNames =       'AO SoundPlay Channel'aaa;
-%     T.chan(1).minVal =          -10;
-%     T.chan(1).maxVal =          10;
-%     T.chan(1).units =           'DAQmx_Val_Volts';
-%     T.time.rate =               rec.NIDAQ_SR; 
-%     T.time.sampleMode =         'DAQmx_Val_FiniteSamps';
-%     T.time.sampsPerChanToAcquiere = NaN;
-%     T.trigger.triggerSource =   ['Ctr',num2str(rec.NIDAQ_Options(rec.NIDAQ_OptionNum).CO.chanIDs),'InternalOutput'];
-%     T.trigger.triggerEdge =     'DAQmx_Val_Rising';
-%     T.write.writeData =         [];
-%     rec.NIDAQ_D.NIDAQ_D.AO =	T;
-
-function RecordSave
-    global rec
-    
-    ds = datestr(now);
-    tt = [  rec.sys.MIC.Name,'; ',...
-            rec.sys.Amp.Name,'@Gain=',num2str(rec.sys.Amp.Gain),'; ',...
-            'AI@',num2str(rec.sys.NIDAQ.AI_ChanVoltage),'V'];
-    wholename = [ds(1:11),'_',ds([end-7 end-6 end-4 end-3 end-1 end]),'_',rec.FileNameHead,'.wav'];
-    audiowrite(wholename, rec.waveform, 100e3,...
-        'BitsPerSample',    16,...
-        'Artist',           tt,...
-        'Title',            rec.FileNameHead,...
-        'Comment',          'Acoustic Calibration Recording, from Xrecorder by Xindong Song');
 
 function RecordPlot
     global rec
         
+    rec.sys.Marmoset.AudiogramFreq = 1000*[...
+        0.1250	0.2500	0.5000	1.0000	2.0000	4.0000	6.0000	7.0000	8.0000	10.0000	12.0000 16.0000 32.0000 36.0000 ];
+    rec.sys.Marmoset.AudiogramLevel = [...
+        51.2000 36.4250 26.5250 18.1250 21.2750 18.9500 10.7750 6.8875  10.5500 14.1000 17.5250 20.1500 27.8500 39.0500 ];
+
+    rec.sys.Marmoset.ERB_Freq = [...
+        250     500     1000    7000    16000];
+    rec.sys.Marmoset.ERBraw = [...
+        90.97   126.85  180.51  460.83  2282.71];
+    
     %% Calculate the SPL, temporal & spectral
     L = length(rec.waveform);
-    t_vol = double(rec.waveform)/2^15 *(rec.sys.NIDAQ.AI_ChanVoltage*1000);
-                                      	% VOLtage (in mV), dynamic range is 200mV, 16bit sampling
-    t_vol = t_vol/rec.sys.Amp.Gain;      % VOLtage (in mV), output @ the microphone
-	t_sp = t_vol/rec.sys.MIC.mVperPa;	% Sound Pressure (in Pascal), @ the microphone
+    t_vol = rec.waveform*1000;
+                                            % VOLtage (in mV), dynamic range is 200mV, 16bit sampling
+    t_vol = t_vol/rec.MicSys_Amp_GainNum;	% VOLtage (in mV), output @ the microphone
+	t_sp = t_vol/rec.MicSys_MIC_mVperPa;	% Sound Pressure (in Pascal), @ the microphone
     t_sprms = sqrt(mean(t_sp.^2));   	% Sound Pressure (in Pascal(rms)), a single number now  
     t_dbspl = 20*log10(t_sprms)+ 94;	% in dB SPL, 94dB SPL = 1 pascal rms
                                                     
@@ -605,10 +559,10 @@ function RecordPlot
     S_dbspl = 10*log10(sum(S_sp.^2))+94;    % dB SPL, abosolute sound level, (1Pascal rms = 94dB SPL)
     S_dbspl_raw = 10*log10(S_sp.^2)+94; 	% the spectrum in dB SPL  
     N = length(S_dbspl_raw);
-    freq = ( (0:N-1)*rec.sys.NIDAQ.AI_TimeSR/2/N )';
-    switch rec.sys.Amp.Name                 % compensate the filter shape
+    freq = ( (0:N-1)*rec.NIDAQ_SR/2/N )';
+    switch rec.MicSys_Amp_Name                 % compensate the filter shape
         case 'Ron''s'
-            S_dbspl_comp = S_dbspl_raw + 10*log10(1+(freq/rec.sys.AmpRon.CufFreq).^2);
+            S_dbspl_comp = S_dbspl_raw + 10*log10(1+(freq/rec.MicSys_AmpRon.CufFreq).^2);
         otherwise
             S_dbspl_comp = S_dbspl_raw;
     end
@@ -640,8 +594,8 @@ function RecordPlot
     t.AxesHeightS =         0.62;
     t.AxesHeightStart =     0.08;
     
-    t.AxesTempYMax =        2^15;
-    t.AxesTempYLim =        35000;
+    t.AxesTempYMax =        rec.MicSys_Amp_DR;
+    t.AxesTempYLim =        rec.MicSys_Amp_DR*1.1;
     t.AxesTempXLabel =      'Time (in second)';
     t.AxesTempXLabelV =     'Bottom';
     t.AxesTempYLabel =      {'Amplitude','(norm.)'};
@@ -664,9 +618,7 @@ function RecordPlot
     t.AxesSpecLegLocation = 'Northeast';    
     t.LineSpecNoiseRColor = [   0       0.447   0.741];
     t.LineSpecAudiogColor = [   1       0       0];
-    t.LineSpecNoiseEColor = [   0       1       0];
-    
-    
+    t.LineSpecNoiseEColor = [   0       1       0];  
     
     % Figure
     figure( 'units',                'normalized',...
@@ -680,7 +632,7 @@ function RecordPlot
             'Color',                t.LineTempWaveColor);
     set(gca,...
             'Xtick',                [1 L],...
-            'XTickLabels',          {'0', num2str(L/rec.sys.NIDAQ.AI_TimeSR)},...
+            'XTickLabels',          {'0', num2str(L/rec.NIDAQ_SR)},...
             'XLim',                 [1, L],...
             'Box',                  'on');
     h = xlabel(t.AxesTempXLabel,...
@@ -721,6 +673,7 @@ function RecordPlot
     % Marmoset ERB weighted noise
     rec.curve.Freq =    S_FreqERB;
     rec.curve.dBSPL =   S_ERB_dbspl;
+    disp(['max peak on the ERB weighted level is ', num2str(max(rec.curve.dBSPL)), ' dB SPL']);
     plot(S_FreqERB, S_ERB_dbspl,...
             'Color',             	t.LineSpecNoiseEColor);
 	h = xlabel(t.AxesSpecXLabel,...
@@ -746,11 +699,26 @@ function RecordPlot
         
     warning('on', 'all');
     
-        
+    
+function RecordSave
+    global rec
+    
+    ds = datestr(now);
+    tt = [  rec.MicSys_MIC_Name,'; ',...
+            rec.MicSys_Amp_Name,'@Gain=',num2str(rec.MicSys_Amp_GainNum),'; ',...
+            'AI@',num2str(rec.NIDAQ_D.AI.chan.maxVal),'V'];
+    wholename = [ds(1:11),'_',ds([end-7 end-6 end-4 end-3 end-1 end]),'_',rec.FileNameHead,'.wav'];
+    audiowrite([rec.FileDir wholename],...
+        int16(32767*rec.waveform/rec.MicSys_Amp_DR), 100e3,...
+        'BitsPerSample',    16,...
+        'Artist',           tt,...
+        'Title',            rec.FileNameHead,...
+        'Comment',          'Acoustic Calibration Recording, from Xrecorder by Xindong Song');
+    
 function RecordLoad
     global rec
     
-    [t.filename, t.pathname] = uigetfile('*.wav');
+    [t.filename, t.pathname] = uigetfile([rec.FileDir '*.wav']);
     t.wavefilename  = [t.pathname t.filename];
     t.info          = audioinfo(t.wavefilename);
     t.sysinfo       = strsplit(t.info.Artist, '; ');
@@ -763,32 +731,26 @@ function RecordLoad
     t.sys.NIDAQ.AI_ChanVoltage ...
                     = str2double(t.sysinfo3{1});
 
-    [   rec.waveform,   rec.sys.NIDAQ.AI_TimeSR] = audioread(t.wavefilename,'native');
-        rec.sys.NIDA.AI_ChanVoltage = t.sys.NIDAQ.AI_ChanVoltage;
-        rec.sys.Amp.Gain            = t.sys.Amp.Gain;
-        rec.sys.Amp.Name            = t.sys.Amp.name;
-    switch t.sys.MIC.name
+        [   rec.waveform,   rec.NIDAQ_SR] = audioread(t.wavefilename,'native');
+            rec.MicSys_Amp_DR =         t.sys.NIDAQ.AI_ChanVoltage;
+            rec.MicSys_Amp_GainNum =    t.sys.Amp.Gain;
+            rec.MicSys_Amp_Name =       t.sys.Amp.name;
+
+            rec.waveform =              double(rec.waveform)/32767*rec.MicSys_Amp_DR;
+    switch rec.MicSys_Amp_Name
         case '4191'
-        rec.sys.MIC.mVperPa         = 13.2;
+            rec.MicSys_MIC_mVperPa =    13.2;
         case '4189'
-        rec.sys.MIC.mVperPa         = 51.3;
+            rec.MicSys_MIC_mVperPa =    51.3;
     end
-
-
-%         wholename = [ds(1:11),'_',ds([end-7 end-6 end-4 end-3 end-1 end]),'_',rec.FileNameHead,'.wav'];
-%         audiowrite(wholename, rec.waveform, 100e3,...
-%             'BitsPerSample',    16,...
-%             'Artist',           tt,...
-%             'Title',            rec.FileNameHead,...
-%             'Comment',          'Acoustic Calibration Recording, from Xrecorder by Xindong Song');
-
+                    RecordPlot;
 
 function RecordCallback(~,evnt)
     global rec
     
     % Time maintainence
     rec.recordtime = rec.recordtime + 0.1;    
-    set(rec.H.hRecTime_Edit, 'string', sprintf('%5.1f', rec.recordtime));
+    set(rec.UI.H.hRecTime_Edit, 'string', sprintf('%5.1f', rec.recordtime));
     if rec.recordtime >= rec.RecTime-0.05
         GUI_Rocker('hStartStop_Rocker', 'Stop');
     end
@@ -799,8 +761,10 @@ function RecordCallback(~,evnt)
     
     % Weather stop
     if rec.recording == 0
-                    CtrlNIDAQ('Stopping',	rec.NIDAQ_H,    rec.NIDAQ_D);
+%         pause(0.2)
+%                     CtrlNIDAQ('Stopping',	rec.NIDAQ_H,    rec.NIDAQ_D);
                     CtrlNIDAQ('Deleting',	rec.NIDAQ_H);
+                    RecordPlot;
     end
     
     
