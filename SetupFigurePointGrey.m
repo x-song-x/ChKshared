@@ -1,4 +1,4 @@
-function msg = SetupFigurePointGrey
+function msg = SetupFigurePointGrey(varargin)
 % The GUI code for Xintrinsic Setup
 
 global TP
@@ -11,7 +11,11 @@ catch
 end
 
 %% Locate Camera Number 
+if nargin==0   
     N = get(gcbo,   'UserData');
+else
+    N = varargin{1};
+end
 
 %% UI Figure                                        
     % Figure scale
@@ -45,7 +49,7 @@ end
     S.PaneletteTitle =      18;
 
     % Panelette #
-    S.PaneletteRowNum =     5;
+    S.PaneletteRowNum =     3;
     S.PaneletteColumnNum =  2;
     
     % Control Panel Scale 
@@ -147,7 +151,7 @@ set(Xin.UI.FigPGC(N).hFig,...
             'Position',     [   S.FigSideWidth,	S.FigSideWidth,...
                                 S.FigWidthT,    S.FigHeightT]);    
 %% UI Panelettes   
-S.PnltCurrent.row = 5;      S.PnltCurrent.column = 1;              
+S.PnltCurrent.row = 3;      S.PnltCurrent.column = 1;              
 	WP.name = 'Sys CamShutter';
         WP.handleseed =	['Xin.UI.FigPGC(', num2str(N), ').Panelette'];
         WP.type =       'Potentiometer';	
@@ -230,17 +234,17 @@ S.PnltCurrent.row = 5;      S.PnltCurrent.column = 1;
 %         Xin.UI.FigPGC(N).CP.hSys_CamWhiteBalanceRB_Mode_Rocker =        Xin.UI.FigPGC(N).Panelette{WP.row,WP.column}.hRocker{1};
 %         clear WP; 
  
-S.PnltCurrent.row = 4;      S.PnltCurrent.column = 1;                                 
+S.PnltCurrent.row = 2;      S.PnltCurrent.column = 1;                                 
     WP.name = 'Mon DispGain';
         WP.handleseed =	['Xin.UI.FigPGC(', num2str(N), ').Panelette'];
         WP.type =       'Potentiometer';	
         WP.row =        S.PnltCurrent.row;
         WP.column =     S.PnltCurrent.column;
             S.PnltCurrent.column = S.PnltCurrent.column + 1;  
-        WP.text = 	{   ['Cam frame bin: [', sprintf('%d ', Xin.D.Sys.PointGreyCamDispGainNumRange), '] (frames)']};
-        WP.tip =    {   ['Cam frame bin: [', sprintf('%d ', Xin.D.Sys.PointGreyCamDispGainNumRange), '] (frames)']};
+        WP.text = 	{   ['Cam frame bin: [', sprintf('%d ', Xin.D.Sys.Camera.DispGainNumRange), '] (frames)']};
+        WP.tip =    {   ['Cam frame bin: [', sprintf('%d ', Xin.D.Sys.Camera.DispGainNumRange), '] (frames)']};
         WP.inputValue =     Xin.D.Sys.PointGreyCam(N).DispGainBit;
-        WP.inputRange =     Xin.D.Sys.PointGreyCamDispGainBitRange([1, end]);
+        WP.inputRange =     Xin.D.Sys.Camera.DispGainBitRange([1, end]);
         WP.inputSlideStep=  1/diff(WP.inputRange)*[1 1];
         Panelette(S, WP, 'Xin');
         Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenSlider =	Xin.UI.FigPGC(N).Panelette{WP.row,WP.column}.hSlider{1};
@@ -249,7 +253,7 @@ S.PnltCurrent.row = 4;      S.PnltCurrent.column = 1;
         set(Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenEdit, 	'UserData',     N);
         clear WP;
 
-S.PnltCurrent.row = 3;      S.PnltCurrent.column = 1;          
+S.PnltCurrent.row = 2;      S.PnltCurrent.column = 2;          
     WP.name = 'Exp RefImage';
         WP.handleseed = ['Xin.UI.FigPGC(', num2str(N), ').Panelette'];
         WP.type = 'MomentarySwitch'; 

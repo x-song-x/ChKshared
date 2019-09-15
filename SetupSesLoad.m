@@ -4,7 +4,7 @@ function SetupSesLoad(MainVarStr, LoadSourceStr)
 % ('Xin' or 'TP')
 %       MainVarStr:     'Xin' or 'TP'
 %       LoadSourceStr:  'Sound', 'AddAtts', 'CycleNumTotal', 'TrlOrder'
-
+% The 
 %   Sound, Additional Attenuations,  and generate according
 % Trl play structures
 
@@ -16,6 +16,7 @@ str = ['L.Ses = ', MainVarStr, '.D.Ses.Load;'];	eval(str);
 str = ['L.Trl = ', MainVarStr, '.D.Trl.Load;'];	eval(str);
 
 %% LoadSource Selection
+% Load things that have LS 
                             LS = 0;
 switch LoadSourceStr
     case 'Sound',           LS = 4;
@@ -49,16 +50,14 @@ if LS>=4
         value =             value(3:end);
         switch argu                
             case 'TrialNames';          value = textscan(value, '%s', 'Delimiter', ' ');
-                                        L.Trl.Names = value{1};
+                                        L.Trl.Names = value{1};                         % Load sound Trial Names
             case 'TrialAttenuations';   value = textscan(value, '%f');
-                                        L.Trl.Attenuations = value{1};
-
-            case 'TrialNumberTotal';	L.Trl.SoundNumTotal =	str2double(value);
-            case 'TrialDurTotal(sec)';	L.Trl.DurTotal =        str2double(value);
-                                        L.Trl.DurCurrent =      NaN;  
-            case 'TrialDurPreStim(sec)';L.Trl.DurPreStim =      str2double(value);
-            case 'TrialDurStim(sec)';   L.Trl.DurStim =         str2double(value);
-            case ''
+                                        L.Trl.Attenuations = value{1};                  % Load sound Trial Attenuations
+            case 'TrialNumberTotal';	L.Trl.SoundNumTotal =	str2double(value);      % Load sound Trial Number Total
+            case 'TrialDurTotal(sec)';	L.Trl.DurTotal =        str2double(value);      % Load sound Trial Duration: Total
+                                        L.Trl.DurCurrent =      NaN;                        % reset sound Trial Duration Current
+            case 'TrialDurPreStim(sec)';L.Trl.DurPreStim =      str2double(value);      % Load sound Trial Duration: PreStimulus
+            case 'TrialDurStim(sec)';   L.Trl.DurStim =         str2double(value);      % Load sound Trial Duration: Stimulus
             otherwise;                  disp(argu);
         end
         i = i+1;
@@ -146,7 +145,8 @@ if LS>=1
                 end
             catch
                         L.Ses.TrlOrderMat =	NaN;
-            end                
+            end 
+        case 'Pre-Ranged'
         otherwise
             errordlg('wrong trial order option');
     end
@@ -177,13 +177,13 @@ switch MainVarStr
         Xin.D.Ses.UpdateNumTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.NIDAQ.Task_AI_Xin.time.updateRate;
         Xin.D.Ses.UpdateNumCurrent =    NaN;      
         Xin.D.Ses.UpdateNumCurrentAI =  NaN;    
-        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(2).FrameRate; 
+        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(3).FrameRate; 
         Xin.D.Ses.FrameRequested =	NaN;    
         Xin.D.Ses.FrameAcquired =   NaN;    
         Xin.D.Ses.FrameAvailable =  NaN;   
         set(Xin.UI.H.hSes_FrameTotal_Edit,      'String', 	num2str(Xin.D.Ses.FrameTotal));
-        set(Xin.UI.H.hSes_FrameAcquired_Edit,   'String',   num2str(Xin.D.Ses.FrameAcquired) );
-        set(Xin.UI.H.hSes_FrameAvailable_Edit,  'String',   num2str(Xin.D.Ses.FrameAvailable) ); 
+    	set(Xin.UI.H.hSes_FrameAcquired_Edit,   'string', ...
+            sprintf('%d)%d', [Xin.D.Ses.FrameAvailable Xin.D.Ses.FrameAcquired]) );
     case 'TP'
         
     otherwise

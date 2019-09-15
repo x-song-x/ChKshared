@@ -721,6 +721,7 @@ function RecordLoad
     [t.filename, t.pathname] = uigetfile([rec.FileDir '*.wav']);
     t.wavefilename  = [t.pathname t.filename];
     t.info          = audioinfo(t.wavefilename);
+    disp(t.info.Artist);
     t.sysinfo       = strsplit(t.info.Artist, '; ');
     t.sysinfo2      = strsplit(t.sysinfo{2}, '@Gain=');
     t.sysinfo3      = strsplit(t.sysinfo{3}(4:end), 'V');
@@ -735,13 +736,16 @@ function RecordLoad
             rec.MicSys_Amp_DR =         t.sys.NIDAQ.AI_ChanVoltage;
             rec.MicSys_Amp_GainNum =    t.sys.Amp.Gain;
             rec.MicSys_Amp_Name =       t.sys.Amp.name;
+            rec.MicSys_MIC_Name =       t.sys.MIC.name;
 
             rec.waveform =              double(rec.waveform)/32767*rec.MicSys_Amp_DR;
-    switch rec.MicSys_Amp_Name
+    switch rec.MicSys_MIC_Name
         case '4191'
             rec.MicSys_MIC_mVperPa =    13.2;
         case '4189'
             rec.MicSys_MIC_mVperPa =    51.3;
+        otherwise
+            errordlg('Microphone not recognized!');
     end
                     RecordPlot;
 
