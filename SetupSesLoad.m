@@ -16,6 +16,7 @@ str = ['L.Ses = ', MainVarStr, '.D.Ses.Load;'];	eval(str);
 str = ['L.Trl = ', MainVarStr, '.D.Trl.Load;'];	eval(str);
 
 %% LoadSource Selection
+        SesTrlOrder =       '';
                             LS = 0;
 switch LoadSourceStr
     case 'Sound',           LS = 4;
@@ -30,10 +31,14 @@ if LS>=4
     % Load the Sound File & Update Parameters
 	filestr =                   [L.Ses.SoundDir, L.Ses.SoundFile];
     SoundRaw =                  audioread(filestr, 'native');
-    if length(SoundRaw) == 1    % Virtual Sounds for Initializing Scan Scheme
+    if length(SoundRaw) == 1    % Virtual Sounds for Initializing Scan Scheme in FANTASIA
         SoundRaw =              int16(zeros(0,0));
     end
-    SoundInfo =                 audioinfo(filestr);       
+    SoundInfo =                 audioinfo(filestr);   
+                if SoundInfo.SampleRate ~= 100000
+                    errordlg('Sound sampling rate is not 100kHz');
+                    return;
+                end
                                         L.Ses.SoundTitle =      SoundInfo.Title;
                                         L.Ses.SoundArtist =     SoundInfo.Artist;
                                         L.Ses.SoundComment =	SoundInfo.Comment;
@@ -47,18 +52,29 @@ if LS>=4
         [argu, value]=      strtok(part{i}, ':');
         argu =              argu(2:end);
         value =             value(3:end);
-        switch argu                
-            case 'TrialNames';          value = textscan(value, '%s', 'Delimiter', ' ');
-                                        L.Trl.Names = value{1};
-            case 'TrialAttenuations';   value = textscan(value, '%f');
-                                        L.Trl.Attenuations = value{1};
-
+        switch argu    
+            % Standard cases for all sounds
+            case 'TrialNames';          value =                 textscan(value, '%s', 'Delimiter', ' ');
+                                        L.Trl.Names =           value{1};
+            case 'TrialAttenuations';   value =                 textscan(value, '%f');
+                                        L.Trl.Attenuations =    value{1};
             case 'TrialNumberTotal';	L.Trl.SoundNumTotal =	str2double(value);
             case 'TrialDurTotal(sec)';	L.Trl.DurTotal =        str2double(value);
                                         L.Trl.DurCurrent =      NaN;  
             case 'TrialDurPreStim(sec)';L.Trl.DurPreStim =      str2double(value);
             case 'TrialDurStim(sec)';   L.Trl.DurStim =         str2double(value);
-            case ''
+            % SPecial cases for Pre-arranged sounds
+            case 'SesTrlOrder';         SesTrlOrder =           deblank(value);
+                if ~strcmp(SesTrlorder, 'Pre-arranged')
+                    errordlg('unrecognizable SesTrlOrder');
+                    return
+                end
+            case 'SesCycleNumTotal';	SesCycleNumTotal =      round(str2double(value)); 
+            case 'SesTrlOrderMat';      value =                 textscan(value, '%d');  
+                                        SesTrlOrderMat =        value{1};    
+                                        SesTrlOrderMat=         reshape(SesTrlOrderMat,...
+                                                                    L.Trl.SoundNumTotal,...
+                                                                    SesCycleNumTotal)';
             otherwise;                  disp(argu);
         end
         i = i+1;
@@ -66,30 +82,66 @@ if LS>=4
                                         L.Trl.DurPostStim =     L.Trl.DurTotal - ...
                                                                 L.Trl.DurPreStim - ...
                                                                 L.Trl.DurStim;
-    if isempty(L.Ses.SoundWave)
-                                        L.Ses.SoundMat =        L.Ses.SoundWave;
+    if isempty(L.Ses.SoundWave)         % Virtual Sounds for Initializing Scan Scheme in FANTASIA
+            L.Ses.SoundMat =	L.Ses.SoundWave;
+    elseif strcmp(SesTrlOrder, 'Pre-arranged')
+                try 
+                    L.Ses.SoundMat =    reshape(L.Ses.SoundWave,...
+                                            L.Trl.DurTotal* SoundInfo.SampleRate,...
+                                            L.Trl.SoundNumTotal,...
+                                            SesCycleNumTotal);
+                catch
+                    errordlg('Pre-arranged session is not at right length');
+                    return
+                end
+        % Turn off necessary GUI options
+        set(findobj('tag', 'hSes_CycleNumTotal_Edit'),	'Enable',   'off');
+        hSesTrlOrder = findobj('tag', 'hSes_TrlOrder_Rocker');
+        hSesTrlOrderButtons = get(hSesTrlOrder,         'Children');
+        set(hSesTrlOrderButtons(2),                     'Enable',   'inactive');
+        set(hSesTrlOrderButtons(3),                     'Enable',   'inactive');
+            % button selection is delayed to LS>1 part
     else
-                                        L.Ses.SoundMat =        reshape(L.Ses.SoundWave,...
-                                                                    length(L.Ses.SoundWave)/L.Trl.SoundNumTotal,...
-                                                                    L.Trl.SoundNumTotal);
-    end
-        
-	if round(   length(SoundRaw)/L.Ses.SoundSR ) ~=...
-                length(SoundRaw)/L.Ses.SoundSR
-        warndlg('The sound length is NOT in integer seconds');
+                try 
+                    L.Ses.SoundMat =	reshape(L.Ses.SoundWave,...
+                                            L.Trl.DurTotal* SoundInfo.SampleRate,...
+                                            L.Trl.SoundNumTotal);
+                catch
+                    errordlg('Pre-arranged session is not at right length');
+                    return
+                end
+        % Turn on necessary GUI options
+        set(findobj('tag', 'hSes_CycleNumTotal_Edit'),	'Enable',   'on');
+        hSesTrlOrder = findobj('tag', 'hSes_TrlOrder_Rocker');
+        hSesTrlOrderButtons = get(hSesTrlOrder,         'Children');
+        set(hSesTrlOrderButtons(2),                     'Enable',   'on');
+        set(hSesTrlOrderButtons(3),                     'Enable',   'on');
+    end        
+	if round(   length(SoundRaw)/L.Ses.SoundSR/0.2 ) ~=...
+                length(SoundRaw)/L.Ses.SoundSR/0.2
+        warndlg('The sound length is NOT in integer multiples of 0.2 second');
 	end    
 	set(findobj('tag', 'hSes_SoundDurTotal_Edit'),      'String',   sprintf('%5.1f (s)', L.Ses.SoundDurTotal));
 	set(findobj('tag', 'hTrl_SoundNumTotal_Edit'),      'String',   num2str(L.Trl.SoundNumTotal));
     set(findobj('tag', 'hTrl_DurTotal_Edit'),           'String',   sprintf('%5.1f (s)', L.Trl.DurTotal));
     set(findobj('tag', 'hTrl_DurCurrent_Edit'),         'String',   sprintf('%5.1f (s)', L.Trl.DurCurrent));   
 end
-
 %% Load AddAtts
 if LS>=3
-        L.Ses.AddAttNumTotal =      length(L.Ses.AddAtts);
-        L.Ses.CycleDurTotal =       L.Ses.SoundDurTotal * L.Ses.AddAttNumTotal;        
+    if strcmp(SesTrlOrder, 'Pre-arranged')
+        L.Ses.AddAtts =             L.Ses.AddAtts(1);
+        L.Ses.AddAttString =        num2string(L.Ses.AddAtts);
+        L.Ses.AddAttNumTotal =      1;    
+        L.Trl.NumTotal =            L.Trl.SoundNumTotal*1;     
+        L.Ses.CycleDurTotal =       L.Trl.DurTotal * L.Trl.NumTotal;   
+    else
+        L.Ses.AddAtts =             L.Ses.AddAtts;
+        L.Ses.AddAttString =        L.Ses.AddAttString;
+        L.Ses.AddAttNumTotal =      length(L.Ses.AddAtts);    
+        L.Trl.NumTotal =            L.Trl.SoundNumTotal * L.Ses.AddAttNumTotal;        
+        L.Ses.CycleDurTotal =       L.Ses.SoundDurTotal * L.Ses.AddAttNumTotal;  
+    end  
         L.Ses.CycleDurCurrent =     NaN;
-        L.Trl.NumTotal =            L.Trl.SoundNumTotal * L.Ses.AddAttNumTotal;
         L.Trl.NumCurrent =          NaN;            
         L.Trl.AttNumCurrent =       NaN;
         L.Trl.AttDesignCurrent =    NaN;
@@ -97,9 +149,9 @@ if LS>=3
         L.Trl.AttCurrent =          NaN;
         L.Ses.TrlIndexSoundNum =    repmat(1:L.Trl.SoundNumTotal, 1, L.Ses.AddAttNumTotal);
     if isnan(L.Trl.SoundNumTotal)
-        L.Ses.TrlIndexAddAttNum = NaN;
+        L.Ses.TrlIndexAddAttNum =	NaN;
     else
-    L.Ses.TrlIndexAddAttNum =   repelem(1:L.Ses.AddAttNumTotal, L.Trl.SoundNumTotal);
+        L.Ses.TrlIndexAddAttNum =   repelem(1:L.Ses.AddAttNumTotal, L.Trl.SoundNumTotal);
     end
     set(findobj('tag', 'hSes_AddAtts_Edit'),        'String',   L.Ses.AddAttString);
     set(findobj('tag', 'hSes_AddAttNumTotal_Edit'),	'String',   num2str(L.Ses.AddAttNumTotal));
@@ -110,11 +162,14 @@ if LS>=3
     set(findobj('tag', 'hTrl_AttDesignCurrent_Edit'),'String',	sprintf('%5.1f (dB)',L.Trl.AttDesignCurrent));
     set(findobj('tag', 'hTrl_AttAddCurrent_Edit'),	'String',	sprintf('%5.1f (dB)',L.Trl.AttAddCurrent));
     set(findobj('tag', 'hTrl_AttCurrent_Edit'),     'String',	sprintf('%5.1f (dB)',L.Trl.AttCurrent));
-
 end
-
 %% Load CycleNumTotal
 if LS>=2
+    if strcmp(SesTrlOrder, 'Pre-arranged')
+        L.Ses.CycNumTotal = SesCycleNumTotal;
+    else
+        L.Ses.CycNumTotal = L.Ses.CycNumTotal;
+    end
     L.Ses.CycleNumCurrent =	NaN; 
     L.Ses.DurTotal =        L.Ses.CycleDurTotal * L.Ses.CycleNumTotal;        
     L.Ses.DurCurrent =      NaN;  
@@ -123,10 +178,13 @@ if LS>=2
     set(findobj('tag', 'hSes_DurTotal_Edit'),       'String',   sprintf('%5.1f (s)', L.Ses.DurTotal));
     set(findobj('tag', 'hSes_DurCurrent_Edit'),     'String',   sprintf('%5.1f (s)', L.Ses.DurCurrent)); 
 end
-
-
 %% Load TrlOrder
 if LS>=1
+    if strcmp(SesTrlOrder,	'Pre-arranged')
+        L.Ses.TrlOrder =	'Pre-arranged';
+                        L.Ses.TrlOrderMat =	SesTrlOrderMat;
+        % This would be bypassed in a second call to set the GUI only
+    end
     switch L.Ses.TrlOrder
         case 'Sequential'
             try
@@ -146,7 +204,9 @@ if LS>=1
                 end
             catch
                         L.Ses.TrlOrderMat =	NaN;
-            end                
+            end     
+        case 'Pre-arranged'
+                        L.Ses.TrlOrderMat =	L.Ses.TrlOrderMat;
         otherwise
             errordlg('wrong trial order option');
     end
@@ -165,11 +225,9 @@ if LS>=1
     set(findobj('tag', 'hTrl_SoundNumCurrent_Edit'),	'String',   num2str(L.Trl.SoundNumCurrent));
     set(findobj('tag', 'hTrl_SoundNameCurrent_Edit'),   'String',	num2str(L.Trl.SoundNameCurrent));    
 end
-
 %% L: Load Out
 str = [MainVarStr, '.D.Ses.Load = L.Ses;'];	eval(str);
 str = [MainVarStr, '.D.Trl.Load = L.Trl;']; eval(str);
-
 %% XINTRINSIC or FANTASIA Specific Updates, after write back Load
 switch MainVarStr
     case 'Xin'
