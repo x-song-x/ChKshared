@@ -75,6 +75,17 @@ else
             Xin.D.Sys.PointGreyCam(i).DispHistMin =     min(Xin.D.Sys.PointGreyCam(i).DispImg, [], 2);
         end
         
+        % custom funtions
+        if i==1
+            %disp('test')
+%              tic;
+%              Xin.D.Mon.PupilDetector.detect;
+%              toc
+        end
+
+        Xin.D.Sys.PointGreyCam(i).DispImg =             Xin.D.Sys.PointGreyCam(i).DispImgOO;
+
+        
     %% Update GUI with hImage, hHist, and timing Data
     set(Xin.UI.FigPGC(i).hImage,                    'CData',	Xin.D.Sys.PointGreyCam(i).DispImg); 
     set(Xin.UI.FigPGC(i).CP.hMon_CamPreviewFR_Edit,	'String',   Xin.D.Sys.PointGreyCam(i).PreviewStrFR);

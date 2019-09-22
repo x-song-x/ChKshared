@@ -3,6 +3,8 @@ global Xin
 
 %% Initiation
 imaqreset;      % reset cameras 
+pause(0.1);
+imaqreset;      % reset cameras 
 
 %% Search All PointGrey Cameras
 try 
@@ -26,32 +28,31 @@ for i = 1:length(info.DeviceInfo)
 end
 
 %% Shared settings
-    Xin.D.Sys.PointGreyCamDispGainBitRange =    0:4;
-    Xin.D.Sys.PointGreyCamDispGainNumRange =    2.^Xin.D.Sys.PointGreyCamDispGainBitRange;
-    i = 1;
-    Xin.D.Sys.PointGreyCamTriggerMode(i).Name =              'SoftwareGrab';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerType =       'immediate';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerCondition =  'none';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerSource =     'none';    
-    i = 2;
-    Xin.D.Sys.PointGreyCamTriggerMode(i).Name =              'SoftwareRec';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerType =       'immediate';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerCondition =  'none';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerSource =     'none';
-    i = 3;
-    Xin.D.Sys.PointGreyCamTriggerMode(i).Name =              'HardwareRec';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerType =       'hardware';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerCondition =  'risingEdge';
-    Xin.D.Sys.PointGreyCamTriggerMode(i).TriggerSource =     'externalTriggerMode14-Source0';
         
 %% Setting Up Cameras
-for i = 1:length(Xin.D.Sys.PointGreyCam)    
-      
+for i = 1:length(Xin.D.Sys.PointGreyCam)  
+    
     ic = 1;
-    Xin.D.Sys.PointGreyCam(i).TriggerName =      Xin.D.Sys.PointGreyCamTriggerMode(ic).Name;  
-    Xin.D.Sys.PointGreyCam(i).TriggerType =      Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerType;         
-    Xin.D.Sys.PointGreyCam(i).TriggerCondition = Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerCondition; 
-    Xin.D.Sys.PointGreyCam(i).TriggerSource =    Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerSource;  
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).Name =              'SoftwareGrab';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerType =       'immediate';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerCondition =  'none';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerSource =     'none';    
+    ic = 2;
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).Name =              'SoftwareRec';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerType =       'immediate';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerCondition =  'none';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerSource =     'none';
+    ic = 3;
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).Name =              'HardwareRec';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerType =       'hardware';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerCondition =  'risingEdge';
+    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerSource =     Xin.D.Sys.PointGreyCam(i).TriggerSource;
+    
+    ic = 1;
+    Xin.D.Sys.PointGreyCam(i).TriggerName =      Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).Name;  
+    Xin.D.Sys.PointGreyCam(i).TriggerType =      Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerType;         
+    Xin.D.Sys.PointGreyCam(i).TriggerCondition = Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerCondition; 
+    Xin.D.Sys.PointGreyCam(i).TriggerSource =    Xin.D.Sys.PointGreyCam(i).TriggerMode(ic).TriggerSource;  
     
     if Xin.D.Sys.PointGreyCam(i).Located
         Xin.HW.PointGrey.Cam(i).hVid = videoinput('pointgrey',...

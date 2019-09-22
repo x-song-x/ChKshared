@@ -89,7 +89,9 @@ function Starting(H, D)
                             H.hTask_CO.start(); 
 
 function D = Stopping(H, D)
-    D.AI.read.outputData = H.hTask_AI.readAnalogData();
+    if ~isfield(D.AI, 'everyN') 
+        D.AI.read.outputData = H.hTask_AI.readAnalogData();
+    end
     if isfield(D, 'AO');    H.hTask_AO.stop();  end
     if isfield(D, 'AI');    H.hTask_AI.stop();  end
                             H.hTask_CO.stop();  

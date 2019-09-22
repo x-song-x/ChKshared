@@ -4,7 +4,7 @@ function SetupSesLoad(MainVarStr, LoadSourceStr)
 % ('Xin' or 'TP')
 %       MainVarStr:     'Xin' or 'TP'
 %       LoadSourceStr:  'Sound', 'AddAtts', 'CycleNumTotal', 'TrlOrder'
-
+% The 
 %   Sound, Additional Attenuations,  and generate according
 % Trl play structures
 
@@ -235,13 +235,13 @@ switch MainVarStr
         Xin.D.Ses.UpdateNumTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.NIDAQ.Task_AI_Xin.time.updateRate;
         Xin.D.Ses.UpdateNumCurrent =    NaN;      
         Xin.D.Ses.UpdateNumCurrentAI =  NaN;    
-        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(2).FrameRate; 
+        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(3).FrameRate; 
         Xin.D.Ses.FrameRequested =	NaN;    
         Xin.D.Ses.FrameAcquired =   NaN;    
         Xin.D.Ses.FrameAvailable =  NaN;   
         set(Xin.UI.H.hSes_FrameTotal_Edit,      'String', 	num2str(Xin.D.Ses.FrameTotal));
-        set(Xin.UI.H.hSes_FrameAcquired_Edit,   'String',   num2str(Xin.D.Ses.FrameAcquired) );
-        set(Xin.UI.H.hSes_FrameAvailable_Edit,  'String',   num2str(Xin.D.Ses.FrameAvailable) ); 
+    	set(Xin.UI.H.hSes_FrameAcquired_Edit,   'string', ...
+            sprintf('%d)%d', [Xin.D.Ses.FrameAvailable Xin.D.Ses.FrameAcquired]) );
     case 'TP'
         
     otherwise

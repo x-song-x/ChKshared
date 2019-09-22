@@ -134,7 +134,7 @@ function Cam_DispGain(varargin)
         DispGainBit =       log2(DispGainNum); 
     end
     %% Check whether the number is valid to update  
-    if  ismember(DispGainBit, Xin.D.Sys.PointGreyCamDispGainBitRange)
+    if  ismember(DispGainBit, Xin.D.Sys.Camera.DispGainBitRange)
         Xin.D.Sys.PointGreyCam(N).DispGainBit =	DispGainBit;
         Xin.D.Sys.PointGreyCam(N).DispGainNum =	DispGainNum;
     end
@@ -228,18 +228,20 @@ function Ref_Image(varargin)
             DataNumApp =                '_BrainSurface';   
         case 'Grasshopper3 GS3-U3-23S6M'
         	imageinfo = [imageinfo,{...
-                ['System Light Source: ',       Xin.D.Sys.Light.Source,     '; '],...
-                ['System Light Port: ',     	Xin.D.Sys.Light.Port,       '; '],...
-                ['System Light Head Cube: ',	Xin.D.Sys.Light.HeadCube,	'; '],...
-                ['Monkey ID: ',         Xin.D.Mky.ID,                       '; '],...
-                ['Monkey Side: ',       Xin.D.Mky.Side,                     '; '],...
-                ['Experiment Date: ',	Xin.D.Exp.DateStr,                  '; '],...
-                ['Experiment Depth: ',	sprintf('%5.2f',Xin.D.Exp.Depth),   ' (LT1 fine turn); ']...
+                ['System Light Source: ',           Xin.D.Sys.Light.Source,                             '; '],...
+                ['System Light Wavelength: ',       num2str(Xin.D.Sys.Light.Wavelength),                'nm; '],...
+                ['System Light Port: ',             Xin.D.Sys.Light.Port,                               '; '],...
+                ['System Light Diffuser: ',         num2str(Xin.D.Sys.Light.Diffuser),                  'º; '],...
+                ['System Light Head Cube: ',        Xin.D.Sys.Light.HeadCube,                           '; '],...
+                ['System Camera Lens Angle: ',      num2str(Xin.D.Sys.CameraLens.Angle),                'º; '],...
+                ['System Camera Lens Aperture: ',   sprintf('f/%.2g',Xin.D.Sys.CameraLens.Aperture),	'; '],...
+                ['Monkey ID: ',                     Xin.D.Mky.ID,                                       '; '],...
+                ['Monkey Side: ',                   Xin.D.Mky.Side,                                     '; '],...
+                ['Monkey Prep: ',                   Xin.D.Mky.Prep,                                     '; '],...
+                ['Experiment Date: ',               Xin.D.Exp.DateStr,                                  '; '],...
+                ['Experiment Depth: ',              sprintf('%d',Xin.D.Exp.Depth),                      ' (LT1 fine turn); ']...
                 }];  
             TriggerRepeat =             Xin.D.Sys.PointGreyCam(N).DispGainNum*2^(16-12) - 1;
-            if strcmp(Xin.D.Sys.Light.Port, 'Koehler')
-                PowerMeterFlag = 1;
-            end
             DataBit =                   16;           
             DataNumApp =                ['_',...
                                         Xin.D.Sys.Light.Source,  '_',...
@@ -265,10 +267,20 @@ function Ref_Image(varargin)
 	Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat = TriggerRepeat;
     %% Capturing Images
 	start(          Xin.HW.PointGrey.Cam(N).hVid);
-    if PowerMeterFlag
-        fprintf(    Xin.HW.Thorlabs.PM100{1}.h,  'MEAS:POW?');
-        pause(0.1);
+    if ~strcmp(Xin.D.Sys.Light.Monitoring, 'N') && strcmp(CamName, 'Grasshopper3 GS3-U3-23S6M')
+        Xin.D.Sys.PowerMeter{1}.WAVelength =        Xin.D.Sys.Light.Wavelength;
+        Xin.D.Sys.PowerMeter{1}.INPutFILTering =    1*strcmp(Xin.D.Sys.Light.Monitoring, 'S'); 
+                                                    % 15Hz :1, 100kHz :0
+        Xin.D.Sys.PowerMeter{1}.AVERageCOUNt =      round( (TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)/0.0003 ); 
+                                                    % average Counts (1~=.3ms)
+        Xin.D.Sys.PowerMeter{1}.InitialMEAsurement= 1;  % send the initial messurement request
+        SetupThorlabsPowerMeters('Xin');
+        pause((TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)+0.1);
+                                                    % wait for the power
+                                                    % integration
         power =     Xin.HW.Thorlabs.PM100{1}.h.fscanf;
+        imageinfo = [ imageinfo,...
+        {['Power Port: ',  	power,              ' (W); ']} ];
     end
     if Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat ~= 0
         wait(Xin.HW.PointGrey.Cam(N).hVid,   Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat);  
@@ -298,10 +310,6 @@ function Ref_Image(varargin)
         'DoubleBuffer',     'off');
     imshow(Xin.D.Sys.PointGreyCam(N).RefImage);
     box on
-    if PowerMeterFlag
-        imageinfo = [ imageinfo,...
-        {['Power Port: ',  	power,              ' (W); ']} ];
-    end
     imagedescription = strjoin(imageinfo);
     imwrite(Xin.D.Sys.PointGreyCam(N).RefImage, [Xin.D.Exp.DataDir, dataname, '.tif'],...
         'Compression',          'deflate',...
@@ -316,15 +324,15 @@ function Trigger_Mode(varargin)
     N =     varargin{1};
     mode =  varargin{2};
     %% Search & allocate the mode
-    for i = 1: length(Xin.D.Sys.PointGreyCamTriggerMode)
-        if strcmp(Xin.D.Sys.PointGreyCamTriggerMode(i).Name, mode)
+    for i = 1: length(Xin.D.Sys.PointGreyCam(N).TriggerMode)
+        if strcmp(Xin.D.Sys.PointGreyCam(N).TriggerMode(i).Name, mode)
             ic = i;
         end
     end     
-    Xin.D.Sys.PointGreyCam(N).TriggerName =      Xin.D.Sys.PointGreyCamTriggerMode(ic).Name;  
-    Xin.D.Sys.PointGreyCam(N).TriggerType =      Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerType;         
-    Xin.D.Sys.PointGreyCam(N).TriggerCondition = Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerCondition; 
-    Xin.D.Sys.PointGreyCam(N).TriggerSource =    Xin.D.Sys.PointGreyCamTriggerMode(ic).TriggerSource;
+    Xin.D.Sys.PointGreyCam(N).TriggerName =      Xin.D.Sys.PointGreyCam(N).TriggerMode(ic).Name;  
+    Xin.D.Sys.PointGreyCam(N).TriggerType =      Xin.D.Sys.PointGreyCam(N).TriggerMode(ic).TriggerType;         
+    Xin.D.Sys.PointGreyCam(N).TriggerCondition = Xin.D.Sys.PointGreyCam(N).TriggerMode(ic).TriggerCondition; 
+    Xin.D.Sys.PointGreyCam(N).TriggerSource =    Xin.D.Sys.PointGreyCam(N).TriggerMode(ic).TriggerSource;
     %% Update Trigger GUI
     try
         a = get(Xin.UI.FigPGC(N).CP.hSes_CamTrigger_Rocker, 'Children');
