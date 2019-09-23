@@ -65,7 +65,7 @@ if LS>=4
             case 'TrialDurStim(sec)';   L.Trl.DurStim =         str2double(value);
             % SPecial cases for Pre-arranged sounds
             case 'SesTrlOrder';         SesTrlOrder =           deblank(value);
-                if ~strcmp(SesTrlorder, 'Pre-arranged')
+                if ~strcmp(SesTrlOrder, 'Pre-arranged')
                     errordlg('unrecognizable SesTrlOrder');
                     return
                 end
@@ -107,7 +107,7 @@ if LS>=4
                                             L.Trl.DurTotal* SoundInfo.SampleRate,...
                                             L.Trl.SoundNumTotal);
                 catch
-                    errordlg('Pre-arranged session is not at right length');
+                    errordlg('Session sound is not at right length');
                     return
                 end
         % Turn on necessary GUI options
@@ -128,9 +128,9 @@ if LS>=4
 end
 %% Load AddAtts
 if LS>=3
-    if strcmp(SesTrlOrder, 'Pre-arranged')
+    if strcmp(SesTrlOrder, 'Pre-arranged') || strcmp(L.Ses.TrlOrder, 'Pre-arranged')
         L.Ses.AddAtts =             L.Ses.AddAtts(1);
-        L.Ses.AddAttString =        num2string(L.Ses.AddAtts);
+        L.Ses.AddAttString =        sprintf('%3.1f', L.Ses.AddAtts);
         L.Ses.AddAttNumTotal =      1;    
         L.Trl.NumTotal =            L.Trl.SoundNumTotal*1;     
         L.Ses.CycleDurTotal =       L.Trl.DurTotal * L.Trl.NumTotal;   
@@ -166,9 +166,9 @@ end
 %% Load CycleNumTotal
 if LS>=2
     if strcmp(SesTrlOrder, 'Pre-arranged')
-        L.Ses.CycNumTotal = SesCycleNumTotal;
+        L.Ses.CycleNumTotal = SesCycleNumTotal;
     else
-        L.Ses.CycNumTotal = L.Ses.CycNumTotal;
+        L.Ses.CycleNumTotal = L.Ses.CycleNumTotal;
     end
     L.Ses.CycleNumCurrent =	NaN; 
     L.Ses.DurTotal =        L.Ses.CycleDurTotal * L.Ses.CycleNumTotal;        
@@ -184,6 +184,10 @@ if LS>=1
         L.Ses.TrlOrder =	'Pre-arranged';
                         L.Ses.TrlOrderMat =	SesTrlOrderMat;
         % This would be bypassed in a second call to set the GUI only
+    elseif LS>=4
+        L.Ses.TrlOrder =    'Sequential';
+        % After the previous sound was loaded as a 'Pre-arranged' sound, 
+        % New sound (not 'Pre-arranged') is loaded 
     end
     switch L.Ses.TrlOrder
         case 'Sequential'
