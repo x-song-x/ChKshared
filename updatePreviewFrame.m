@@ -65,8 +65,27 @@ else
                                                         Xin.D.Sys.PointGreyCam(i).ROIi;
         else
             Xin.D.Sys.PointGreyCam(i).DispImgOO =       Xin.D.Sys.PointGreyCam(i).DispImgRO;
-        end       
+        end  
+        % CUSTOM FUNCTIONS
+        if i==1
+            %disp('test')
+%              tic;
+             Xin.D.Mon.PupilDetector.detect;
+%              toc
+        end     
+        % IMAGE OUTPUT
         Xin.D.Sys.PointGreyCam(i).DispImg =             Xin.D.Sys.PointGreyCam(i).DispImgOO;
+        if Xin.D.Sys.PointGreyCam(i).PreviewRef
+           Xin.D.Sys.PointGreyCam(i).DispImg3(:,:,1) =  Xin.D.Sys.PointGreyCam(i).DispImg;
+           Xin.D.Sys.PointGreyCam(i).DispImg3(:,:,2) =  Xin.D.Sys.PointGreyCam(i).DisplayRefImage;
+           Xin.D.Sys.PointGreyCam(i).DispImg3(:,:,3) =  Xin.D.Sys.PointGreyCam(i).DispImg;
+        else
+            Xin.D.Sys.PointGreyCam(i).DispImg3 =        reshape(...
+                                                            repmat(Xin.D.Sys.PointGreyCam(i).DispImg, 1, 3),...
+                                                            size(Xin.D.Sys.PointGreyCam(i).DispImg,1),...
+                                                            size(Xin.D.Sys.PointGreyCam(i).DispImg,2),...
+                                                            3);
+        end
 
         % HISTOGRAM
         if Xin.D.Sys.PointGreyCam(i).UpdatePreviewHistogram
@@ -75,25 +94,14 @@ else
             Xin.D.Sys.PointGreyCam(i).DispHistMin =     min(Xin.D.Sys.PointGreyCam(i).DispImg, [], 2);
         end
         
-        % custom funtions
-        if i==1
-            %disp('test')
-%              tic;
-%              Xin.D.Mon.PupilDetector.detect;
-%              toc
-        end
-
-        Xin.D.Sys.PointGreyCam(i).DispImg =             Xin.D.Sys.PointGreyCam(i).DispImgOO;
-
-        
     %% Update GUI with hImage, hHist, and timing Data
-    set(Xin.UI.FigPGC(i).hImage,                    'CData',	Xin.D.Sys.PointGreyCam(i).DispImg); 
+    set(Xin.UI.FigPGC(i).hImage,                    'CData',	Xin.D.Sys.PointGreyCam(i).DispImg3); 
     set(Xin.UI.FigPGC(i).CP.hMon_CamPreviewFR_Edit,	'String',   Xin.D.Sys.PointGreyCam(i).PreviewStrFR);
     set(Xin.UI.FigPGC(i).CP.hMon_CamPreviewTS_Edit,	'String',   Xin.D.Sys.PointGreyCam(i).PreviewStrTS);
 	if Xin.D.Sys.PointGreyCam(i).UpdatePreviewHistogram
-        set(Xin.UI.FigPGC(i).hHistMax,                  'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMax);
-        set(Xin.UI.FigPGC(i).hHistMean,                 'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMean);
-        set(Xin.UI.FigPGC(i).hHistMin,                  'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMin); 
+        set(Xin.UI.FigPGC(i).hHistMax,              'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMax);
+        set(Xin.UI.FigPGC(i).hHistMean,             'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMean);
+        set(Xin.UI.FigPGC(i).hHistMin,              'YData',    Xin.D.Sys.PointGreyCam(i).DispHistMin); 
 	end
 end
 

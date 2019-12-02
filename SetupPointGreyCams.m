@@ -1,11 +1,6 @@
 function msg = SetupPointGreyCams
 global Xin
 
-%% Initiation
-imaqreset;      % reset cameras 
-pause(0.1);
-imaqreset;      % reset cameras 
-
 %% Search All PointGrey Cameras
 try 
     info = imaqhwinfo('pointgrey');
@@ -14,17 +9,34 @@ catch
     errordlg('PointGrey cameras cannot be located')
 end
 
-%% Locate Each Camera 
-for i = 1:length(info.DeviceInfo)
-    info.hVid = videoinput('pointgrey', i, info.DeviceInfo(i).DefaultFormat);
-    info.hSrc = getselectedsource(info.hVid);
-    for j = 1:length(Xin.D.Sys.PointGreyCam) 
-        if strcmp(  Xin.D.Sys.PointGreyCam(j).DeviceName,	info.DeviceInfo(i).DeviceName) && ...
-           strcmp(  Xin.D.Sys.PointGreyCam(j).SerialNumber,	info.hSrc.SerialNumber)
-            Xin.D.Sys.PointGreyCam(j).Located = i;
-        end     
+%% Locate Each Camera, Reset if necessary
+pass =      0;
+resettime = 0;
+while pass == 0
+    pass = 1;
+    imaqreset;      % reset cameras
+    resettime = resettime + 1;
+    disp('reseting cameras');
+    for i = 1:length(info.DeviceInfo)
+        info.hVid = videoinput('pointgrey', i, info.DeviceInfo(i).DefaultFormat);
+        info.hSrc = getselectedsource(info.hVid);
+        for j = 1:length(Xin.D.Sys.PointGreyCam) 
+            if strcmp(  Xin.D.Sys.PointGreyCam(j).DeviceName,	info.DeviceInfo(i).DeviceName) && ...
+               strcmp(  Xin.D.Sys.PointGreyCam(j).SerialNumber,	info.hSrc.SerialNumber)
+                Xin.D.Sys.PointGreyCam(j).Located = i;    
+                info.pSrc = propinfo(info.hSrc); 
+                info.CurShutterLimit = info.pSrc.Shutter.ConstraintValue(2) - Xin.D.Sys.PointGreyCam(j).ShutterResv; 
+                if abs(info.CurShutterLimit/Xin.D.Sys.PointGreyCam(j).ShutterTarget -1) >0.01
+                    pass = pass*0;
+                end
+            end     
+        end
+        delete(info.hVid);
     end
-    delete(info.hVid);
+    if resettime > 10
+        disp('cannot get the shutter right')
+        pass = 1;
+    end
 end
 
 %% Shared settings
@@ -141,7 +153,8 @@ for i = 1:length(Xin.D.Sys.PointGreyCam)
         end
         
         %% Camera preview inputs       
-        Xin.D.Sys.PointGreyCam(i).PreviewClipROI =      0;         
+        Xin.D.Sys.PointGreyCam(i).PreviewClipROI =      0;   
+        Xin.D.Sys.PointGreyCam(i).PreviewRef =          0;         
             % Xin.D.Sys.PointGreyCam(i).ROIPosition     
         Xin.D.Sys.PointGreyCam(i).PreviewImageIn = ...
                                                         uint8(256*rand(...
@@ -191,6 +204,11 @@ for i = 1:length(Xin.D.Sys.PointGreyCam)
             Xin.D.Sys.PointGreyCam(i).DispImgOO =       Xin.D.Sys.PointGreyCam(i).DispImgRO;
         end       
         Xin.D.Sys.PointGreyCam(i).DispImg =             Xin.D.Sys.PointGreyCam(i).DispImgOO;
+        Xin.D.Sys.PointGreyCam(i).DispImg3 =            reshape(...
+                                                            repmat(Xin.D.Sys.PointGreyCam(i).DispImg, 1, 3),...
+                                                            size(Xin.D.Sys.PointGreyCam(i).DispImg,1),...
+                                                            size(Xin.D.Sys.PointGreyCam(i).DispImg,2),...
+                                                            3);
 
         % HISTOGRAM
         if Xin.D.Sys.PointGreyCam(i).UpdatePreviewHistogram
