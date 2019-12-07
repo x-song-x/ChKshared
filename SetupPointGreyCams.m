@@ -26,7 +26,7 @@ while pass == 0
                 Xin.D.Sys.PointGreyCam(j).Located = i;    
                 info.pSrc = propinfo(info.hSrc); 
                 info.CurShutterLimit = info.pSrc.Shutter.ConstraintValue(2) - Xin.D.Sys.PointGreyCam(j).ShutterResv; 
-                if abs(info.CurShutterLimit/Xin.D.Sys.PointGreyCam(j).ShutterTarget -1) >0.01
+                if abs(info.CurShutterLimit/Xin.D.Sys.PointGreyCam(j).ShutterTarget -1) >0.08
                     pass = pass*0;
                 end
             end     
