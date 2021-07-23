@@ -11,9 +11,9 @@ persistent O
 I = [];
 str = ['I.PowerMeter = ', MainVarStr, '.D.Sys.PowerMeter;'];	eval(str);
 %% instrreset for clean up !!!
-instrreset;
+% instrreset;
 pause(1);
-
+fprintf( 'Totally %d Thorlabs Power Meters\n', length(I.PowerMeter) );
 %% Power Meter through NI VISA interface
 for i = 1:length(I.PowerMeter)
     O.PM100{i}.name =     I.PowerMeter{i}.Console;

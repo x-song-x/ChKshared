@@ -239,7 +239,7 @@ switch MainVarStr
         Xin.D.Ses.UpdateNumTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.NIDAQ.Task_AI_Xin.time.updateRate;
         Xin.D.Ses.UpdateNumCurrent =    NaN;      
         Xin.D.Ses.UpdateNumCurrentAI =  NaN;    
-        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.PointGreyCam(3).FrameRate; 
+        Xin.D.Ses.FrameTotal =      Xin.D.Ses.Load.DurTotal * Xin.D.Sys.Camera.MainFrameRate; 
         Xin.D.Ses.FrameRequested =	NaN;    
         Xin.D.Ses.FrameAcquired =   NaN;    
         Xin.D.Ses.FrameAvailable =  NaN;   

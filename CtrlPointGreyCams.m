@@ -35,6 +35,7 @@ set(Xin.UI.FigPGC(N).CP.hSys_CamGain_PotenEdit,      	'Callback',	[mfilename, '(
 set(Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenSlider,	'Callback',	[mfilename, '(''Cam_DispGain'')']);
 set(Xin.UI.FigPGC(N).CP.hSys_CamDispGain_PotenEdit,     'Callback',	[mfilename, '(''Cam_DispGain'')']);
 set(Xin.UI.FigPGC(N).CP.hExp_RefImage_Momentary,        'Callback',	[mfilename, '(''Ref_Image'')']);
+set(Xin.UI.FigPGC(N).CP.hExp_RefCoord_Momentary,        'Callback',	[mfilename, '(''Ref_Coord'')']);
 set(Xin.UI.FigPGC(N).CP.hMon_PreviewSwitch_Rocker,	'SelectionChangeFcn',	[mfilename, '(''Preview_Switch'')']);
 	%% LOG MSG
     msg = [datestr(now, 'yy/mm/dd HH:MM:SS.FFF') '\tInitializeCallbacks\tSetup the PointGrey Camera #' ...
@@ -200,6 +201,7 @@ function Preview_Switch(varargin)
     
 function Ref_Image(varargin)
     global Xin
+    global RefImage
 	%% Get the Inputs
     if nargin==0
         % called by GUI: 
@@ -265,28 +267,50 @@ function Ref_Image(varargin)
     %% Camera Trigger Settings   
     Trigger_Mode(N, 'SoftwareGrab');
 	Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat = TriggerRepeat;
-    %% Capturing Images
 	start(          Xin.HW.PointGrey.Cam(N).hVid);
-    if ~strcmp(Xin.D.Sys.Light.Monitoring, 'N') && strcmp(CamName, 'Grasshopper3 GS3-U3-23S6M')
-        Xin.D.Sys.PowerMeter{1}.WAVelength =        Xin.D.Sys.Light.Wavelength;
-        Xin.D.Sys.PowerMeter{1}.INPutFILTering =    1*strcmp(Xin.D.Sys.Light.Monitoring, 'S'); 
-                                                    % 15Hz :1, 100kHz :0
-        Xin.D.Sys.PowerMeter{1}.AVERageCOUNt =      round( (TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)/0.0003 ); 
-                                                    % average Counts (1~=.3ms)
-        Xin.D.Sys.PowerMeter{1}.InitialMEAsurement= 1;  % send the initial messurement request
-        SetupThorlabsPowerMeters('Xin');
-        pause((TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)+0.1);
-                                                    % wait for the power
-                                                    % integration
-        power =     Xin.HW.Thorlabs.PM100{1}.h.fscanf;
-        imageinfo = [ imageinfo,...
-        {['Power Port: ',  	power,              ' (W); ']} ];
+    %% Additional info is needed
+    % Xintrinsic Cam #3 w/ light monitoring
+%     if strcmp(Xin.D.Sys.PointGreyCam(N).Comments, 'Wide-field_Imaging')
+    if strcmp(CamName, 'Grasshopper3 GS3-U3-23S6M') && N==3
+        if ~strcmp(Xin.D.Sys.Light.Monitoring, 'N')
+            Xin.D.Sys.PowerMeter{1}.WAVelength =        Xin.D.Sys.Light.Wavelength;
+            Xin.D.Sys.PowerMeter{1}.INPutFILTering =    1*strcmp(Xin.D.Sys.Light.Monitoring, 'S'); 
+                                                        % 15Hz :1, 100kHz :0
+            Xin.D.Sys.PowerMeter{1}.AVERageCOUNt =      round( (TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)/0.0003 ); 
+                                                        % average Counts (1~=.3ms)
+            Xin.D.Sys.PowerMeter{1}.InitialMEAsurement= 1;  % send the initial messurement request
+            SetupThorlabsPowerMeters('Xin');
+            pause((TriggerRepeat+1)*(1/Xin.HW.PointGrey.Cam(N).hSrc.FrameRate)+0.1);
+                                                        % wait for the power
+                                                        % integration
+            power =     Xin.HW.Thorlabs.PM100{1}.h.fscanf;
+            imageinfo = [ imageinfo,...
+            {['Power Port: ',  	power,              ' (W); ']} ];
+        end
     end
+        imageXYZ = '';
+    % FANTASIA FOV finder w/ more location information
+    if strcmp(Xin.D.Sys.PointGreyCam(N).Comments, 'FANTASIA FOV finder')
+        global TP
+        imageXYZ = sprintf('_%3.1f', [TP.D.Sys.MotXY.PosiAbs TP.D.Sys.MotZ.PosiAbs]);
+        imageinfo = [ imageinfo,...
+        {sprintf('Absolute stage positions: [%6.1f %6.1f %6.1f] (um); ',...
+            [TP.D.Sys.MotXY.PosiAbs TP.D.Sys.MotZ.PosiAbs])} ];
+%             disp(imageinfo{4});
+    end
+    %% Capturing Images
     if Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat ~= 0
         wait(Xin.HW.PointGrey.Cam(N).hVid,   Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat);  
     end
     [idata,~,~] = getdata(Xin.HW.PointGrey.Cam(N).hVid,...
         Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat+1,   'native', 'numeric');  
+    % YUV conversion if needed. (this has to be done before averaging)
+    if Xin.D.Sys.PointGreyCam(N).DispYUV
+        for i = 1:size(idata,4)
+            idata(:,:,:,i) = ycbcr2rgb(squeeze(idata(:,:,:,i)));
+        end
+    end
+    % Averaging, Rotating
     if Xin.HW.PointGrey.Cam(N).hVid.TriggerRepeat ~= 0  
         RefImage =                      uint16( rot90(squeeze(sum(idata,4)), ...
                                         	(360-Xin.D.Sys.PointGreyCam(N).PreviewRot)/90) );
@@ -294,6 +318,7 @@ function Ref_Image(varargin)
         RefImage =                      uint16( rot90(idata, ...
                                         	(360-Xin.D.Sys.PointGreyCam(N).PreviewRot)/90) );        
     end
+    % Output format
     if      DataBit == 8
         Xin.D.Sys.PointGreyCam(N).RefImage = uint8(RefImage);
     elseif  DataBit == 16
@@ -301,14 +326,15 @@ function Ref_Image(varargin)
     end
     %% Save the Image
     datestrfull =	datestr(now, 30);
-    dataname =      [datestrfull(3:end), DataNumApp];    
+    dataname =      [datestrfull(3:end), DataNumApp imageXYZ];    
     figure(...
         'Name',             dataname,...
         'NumberTitle',      'off',...
         'Color',            Xin.UI.C.BG,...
         'MenuBar',          'none',...
         'DoubleBuffer',     'off');
-    imshow(Xin.D.Sys.PointGreyCam(N).RefImage);
+    imshow(Xin.D.Sys.PointGreyCam(N).RefImage,...
+        'InitialMagnification', 100/Xin.D.Sys.PointGreyCam(N).PreviewZoom);
     box on
     imagedescription = strjoin(imageinfo);
     imwrite(Xin.D.Sys.PointGreyCam(N).RefImage, [Xin.D.Exp.DataDir, dataname, '.tif'],...
@@ -317,6 +343,30 @@ function Ref_Image(varargin)
     %% LOG MSG    
     msg = [datestr(now, 'yy/mm/dd HH:MM:SS.FFF') '\tRef_Image\tA reference image has been taken from PointGrey Camera #'...
         num2str(N), ':', Xin.D.Sys.PointGreyCam(N).Comments,'\r\n'];
+    updateMsg(Xin.D.Exp.hLog, msg);
+     
+function Ref_Coord(varargin)
+    global Xin
+	%% Get the Inputs
+    if nargin==0
+        % called by GUI: 
+        N =                 get(gcbo, 'UserData');
+    else
+        % called by general update:	e.g. Ref_Image(2)
+        N =                 varargin{1}; 
+    end
+    %% Setup Parameters
+    Xin.D.Sys.PointGreyCam(N).DispRefCoord = 1 - Xin.D.Sys.PointGreyCam(N).DispRefCoord;
+    if Xin.D.Sys.PointGreyCam(N).DispRefCoord > 0.5
+        Xin.UI.FigPGC(N).hPlotV.Visible = 'on'; 
+        Xin.UI.FigPGC(N).hPlotH.Visible = 'on'; 
+    else
+        Xin.UI.FigPGC(N).hPlotV.Visible = 'off'; 
+        Xin.UI.FigPGC(N).hPlotH.Visible = 'off'; 
+    end            
+    %% LOG MSG    
+    msg = [datestr(now, 'yy/mm/dd HH:MM:SS.FFF') '\tRef_Coord\tA reference coordinates has been updated for PointGrey Camera #'...
+        num2str(N), '\r\n'];
     updateMsg(Xin.D.Exp.hLog, msg);
     
 function Trigger_Mode(varargin)

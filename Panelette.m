@@ -203,10 +203,15 @@ switch WP.type
                     set(hhh(j),...
                     'Enable',               'off');
                 end
-                if isfield(WP,'enable')
-                    if WP.enable(i,j)==0
-                    	set(hhh(j),...
-                    'Enable',               'off');
+                if isfield(WP,'inputEnable')
+                    if isnumeric(WP.inputEnable(i,j))
+                        if WP.inputEnable(i,j)==0
+                            set(hhh(j),...
+                        'Enable',               'off');
+                        end
+                    else
+                        set(hhh(j),...
+                        'Enable',               WP.inputEnable{i,j});
                     end
                 end
                 

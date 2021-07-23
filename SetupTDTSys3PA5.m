@@ -14,12 +14,11 @@ global TP Xin
 % create the PA5 object, [0 0 1 1] indicates the graphic size to be hidden
 figure('Visible',   'off');
 drawnow;
-    str = [MainVarStr, '.HW.TDT.PA5 = actxcontrol(''PA5.x'',[0 0 1 1]);']; 
+    str = [MainVarStr, '.HW.TDT.PA5 = actxserver(''PA5.x'');']; 
         eval(str);
 %     disp(str);
     pause(0.2);
-    str = ['con = invoke(', MainVarStr, '.HW.TDT.PA5,''ConnectPA5'',''USB'',1);'];
-        eval(str);
+    str = ['con = ', MainVarStr, '.HW.TDT.PA5.ConnectPA5(''USB'',1);']; eval(str);
 %     disp(str);
 %     disp(con);
 %     disp(Xin.HW.TDT.PA5);
@@ -30,8 +29,9 @@ drawnow;
             'zBusmon can be used to validate if',...
             'PA5 is ready to be called from ActiveX or not'});
     end
-    str = [MainVarStr, '.HW.TDT.PA5.Display(''ChK, Go!'', 0);'];
-        eval(str);
+    
+    str = [MainVarStr, '.HW.TDT.PA5.Reset;'];                       eval(str); pause(0.1);
+    str = [MainVarStr, '.HW.TDT.PA5.Display(''ChK, Go!'', 0);'];    eval(str);
     
 %% LOG MSG
 msg = [datestr(now, 'yy/mm/dd HH:MM:SS.FFF') '\tSetupTDTSys3PA5\tSetup TDT Sys3 PA5\r\n'];  
