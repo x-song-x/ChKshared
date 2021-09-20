@@ -71,11 +71,18 @@ rec.NIDAQ_UR =              10;
 rec.NIDAQ_Options(1).Dev.devName =      'Dev3';
 rec.NIDAQ_Options(1).CO.chanIDs = 		0;
 rec.NIDAQ_Options(1).AI.chanIDs =		2;
+rec.NIDAQ_Options(1).AI.SR =            100e3;
 % rec.NIDAQ_Options(1).AI.chanIDs =		16;
 
 rec.NIDAQ_Options(2).Dev.devName =      'Dev4';
 rec.NIDAQ_Options(2).CO.chanIDs = 		0;
 rec.NIDAQ_Options(2).AI.chanIDs =		0;
+rec.NIDAQ_Options(2).AI.SR =            100e3;
+
+rec.NIDAQ_Options(3).Dev.devName =      'Dev1';
+rec.NIDAQ_Options(3).CO.chanIDs = 		0;
+rec.NIDAQ_Options(3).AI.chanIDs =		2;
+rec.NIDAQ_Options(3).AI.SR =            10e6;
 
 %% GUI Setup
 
@@ -215,7 +222,7 @@ S.PnltCurrent.row = 1;      S.PnltCurrent.column =    1;
             S.PnltCurrent.column = S.PnltCurrent.column + 1; 
         WP.text = { 'NI PCIe-6323 / NI USB-6251'};
         WP.tip = {	'Select the right NI-DAQ card'};
-        WP.inputOptions =   {'NI PCIe-6323','NI USB-6251',''};
+        WP.inputOptions =   {'NI PCIe-6323','NI USB-6251','NI PCI-6115'};
         WP.inputDefault =   1;
         Panelette(S, WP, 'rec');  
         rec.UI.H.hNIDAQ_Rocker = rec.UI.H0.Panelette{WP.row,WP.column}.hRocker{1};
@@ -418,6 +425,11 @@ function GUI_Rocker(varargin)
                     % Switch 2V/0.2V GUI
                     ht =  get(rec.UI.H.hDR_Toggle1, 'Children');    set(ht(1), 'Enable', 'on');
                     ht =  get(rec.UI.H.hDR_Toggle2, 'Children');    set(ht(2), 'Enable', 'on');
+                case 'NI PCI-6115'
+                    rec.NIDAQ_OptionNum = 3;
+                    % Switch 2V/0.2V GUI
+                    ht =  get(rec.UI.H.hDR_Toggle1, 'Children');    set(ht(1), 'Enable', 'on');
+                    ht =  get(rec.UI.H.hDR_Toggle2, 'Children');    set(ht(2), 'Enable', 'on');
                 otherwise
             end
         case 'hStartStop_Rocker'       
@@ -484,6 +496,7 @@ function RecordStart
 
     rec.recordtime = 0; 
     rec.waveform = [];    
+    rec.NIDAQ_SR = rec.NIDAQ_Options(rec.NIDAQ_OptionNum).AI.SR;
     
     rec.NIDAQ_D.Dev.devName =	rec.NIDAQ_Options(rec.NIDAQ_OptionNum).Dev.devName;
     T =                         [];

@@ -158,7 +158,7 @@ else
         if i==1
             %disp('test')
 %              tic;
-             Xin.D.Mon.PupilDetector.detect;
+%              Xin.D.Mon.PupilDetector.detect;
 %              toc
         end     
         % IMAGE OUTPUT
